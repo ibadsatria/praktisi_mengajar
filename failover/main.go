@@ -17,6 +17,8 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
+var c *cache.Cache
+
 // Define a struct for the pengguna table
 type Pengguna struct {
 	ID            int    `json:"id"`
@@ -27,6 +29,7 @@ type Pengguna struct {
 }
 
 func main() {
+	c = cache.New(5*time.Minute, 10*time.Minute) // Adjust the expiration and cleanup intervals as needed
 	// Create a reader to read input from standard input
 	reader := bufio.NewReader(os.Stdin)
 
@@ -93,8 +96,8 @@ func getPengguna(ctx context.Context, id int) (Pengguna, error) {
 	var p Pengguna
 
 	// Try to get the data from memory cache first
-	c := cache.New(5*time.Minute, 10*time.Minute) // Adjust the expiration and cleanup intervals as needed
-	key := fmt.Sprintf("pengguna:%d", id)         // Use a unique key for each id key: pengguna:2304109
+
+	key := fmt.Sprintf("pengguna:%d", id) // Use a unique key for each id key: pengguna:2304109
 	val, found := c.Get(key)
 	if found {
 		fmt.Println("is fetching from memory cache")
@@ -144,6 +147,6 @@ func getPengguna(ctx context.Context, id int) (Pengguna, error) {
 
 	fmt.Println("is fetching from database as last failover")
 	rdb.Set(ctx, key, valBytes, time.Hour) // Adjust the expiration time as needed
-	c.Set(key, valBytes, cache.NoExpiration)
+	c.Set(key, valBytes, 10*time.Second)   // set expiry time to 10 seconds
 	return p, nil
 }
